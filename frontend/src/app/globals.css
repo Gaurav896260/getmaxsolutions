@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand: #5932ea;
+  --color-brand-soft: #7a5cf3;
+  --color-brand-deep: #3a17c4;
+  --color-brand-night: #1e0b78;
+  --color-ink: #1a0c5e;
+  --color-sand: #f5f3ee;
+  --color-lilac: #ebe5ff;
+
+  /* Apple system font (SF Pro) only; other platforms fall back to Helvetica/Arial. */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-display: var(--font-source-serif), Georgia, serif;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html {
+  scroll-padding-top: 6rem;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--color-sand);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--color-brand);
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Animated underline used for inline links on dark sections */
+.link-underline {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 100% 2px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  padding-bottom: 2px;
+  transition: background-size 0.5s var(--ease-out-expo);
+}
+.link-underline:hover {
+  background-size: 0% 2px;
+  background-position: 100% 100%;
+}
+
+/* Wordmark tone: purple by default, white on dark sections, cross-fading between. */
+.logo-tone {
+  filter: brightness(1) invert(0);
+  transition: filter 0.5s var(--ease-out-expo);
+}
+.logo-tone.logo-white {
+  filter: brightness(0) invert(1);
+}
