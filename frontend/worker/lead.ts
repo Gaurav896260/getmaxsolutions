@@ -1,14 +1,23 @@
-// Receives Free Growth Audit requests and emails them to the team via Resend.
+// Receives Free Growth Audit / contact requests and emails them via Resend.
+// Runs in the Cloudflare worker (worker/index.ts) at POST /api/audit — the site
+// itself is a static export, so this can't be a Next route handler.
 //
-// Env (server-only):
+// Env (worker vars / secrets, see wrangler.jsonc):
 //   RESEND_API_KEY   — from resend.com (domain getmaxsolutions.com verified there)
 //   LEAD_TO_EMAIL    — inbox(es) that receive leads, comma-separated
 //   LEAD_FROM_EMAIL  — verified sender, e.g. "Getmax Leads <info@getmaxsolutions.com>"
 //
-// Without RESEND_API_KEY the lead is logged to the server console in development
-// and rejected in production, so a misconfigured deploy never silently drops leads.
+// Without RESEND_API_KEY the request is rejected (logged when DEV=1), so a
+// misconfigured deploy never silently drops leads.
 
-import { SERVICES, SITE } from "@/lib/site";
+import { SERVICES, SITE } from "../src/lib/site";
+
+export type LeadEnv = {
+  RESEND_API_KEY?: string;
+  LEAD_TO_EMAIL?: string;
+  LEAD_FROM_EMAIL?: string;
+  DEV?: string;
+};
 
 type Lead = {
   kind: "audit" | "contact";
@@ -25,7 +34,7 @@ const MAX = { name: 120, email: 200, website: 300, phone: 40, message: 2000, sou
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const SOURCE_KEYS = ["page", "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "referrer"];
 
-// Best-effort per-instance throttle; serverless instances don't share it.
+// Best-effort per-isolate throttle; worker isolates don't share it.
 const hits = new Map<string, number[]>();
 function rateLimited(ip: string) {
   const now = Date.now();
@@ -102,7 +111,7 @@ function renderEmail(lead: Lead) {
   return { html, text };
 }
 
-export async function POST(request: Request) {
+export async function handleLead(request: Request, env: LeadEnv): Promise<Response> {
   let body: Record<string, unknown>;
   try {
     body = await request.json();
@@ -113,7 +122,7 @@ export async function POST(request: Request) {
   // Honeypot: real users never fill the hidden "company_url" field.
   if (str(body.company_url, 200)) return Response.json({ ok: true });
 
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const ip = request.headers.get("cf-connecting-ip") || "unknown";
   if (rateLimited(ip)) {
     return Response.json(
       { ok: false, error: "Too many requests. Please try again in a few minutes." },
@@ -124,12 +133,12 @@ export async function POST(request: Request) {
   const { lead, error } = parse(body);
   if (!lead) return Response.json({ ok: false, error }, { status: 422 });
 
-  const apiKey = process.env.RESEND_API_KEY;
-  const to = (process.env.LEAD_TO_EMAIL ?? "").split(",").map((s) => s.trim()).filter(Boolean);
-  const from = process.env.LEAD_FROM_EMAIL ?? `${SITE.name} <onboarding@resend.dev>`;
+  const apiKey = env.RESEND_API_KEY;
+  const to = (env.LEAD_TO_EMAIL ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  const from = env.LEAD_FROM_EMAIL || `${SITE.name} <onboarding@resend.dev>`;
 
   if (!apiKey || to.length === 0) {
-    if (process.env.NODE_ENV !== "production") {
+    if (env.DEV === "1") {
       console.info(`[audit] Lead received (email not configured): ${JSON.stringify(lead)}`);
       return Response.json({ ok: true, dev: true });
     }

@@ -1,3 +1,5 @@
+export const dynamic = "force-static";
+
 import { renderShareImage, shareAlt, shareSize } from "@/lib/shareImage";
 
 export const alt = shareAlt;

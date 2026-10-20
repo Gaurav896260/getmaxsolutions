@@ -1,0 +1,25 @@
+// Cloudflare Worker serving getmaxsolutions.com.
+// Static pages come from the Next export in out/ (npm run build).
+// worker/index.ts handles POST /api/audit (lead form → Resend email).
+// Deployed by .github/workflows/deploy.yml on pushes to the production branch.
+//
+// Secret (set once, never in git):  npx wrangler secret put RESEND_API_KEY
+{
+  "name": "getmax-solutions",
+  "account_id": "22237fbcd2f089af2f84fc6ad719599d",
+  "main": "worker/index.ts",
+  "compatibility_date": "2025-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "assets": {
+    "directory": "./out",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*"]
+  },
+  "vars": {
+    "LEAD_TO_EMAIL": "info@getmaxsolutions.com",
+    "LEAD_FROM_EMAIL": "Getmax Solutions <info@getmaxsolutions.com>"
+  }
+}
