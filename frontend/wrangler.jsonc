@@ -11,6 +11,10 @@
   "compatibility_date": "2025-10-01",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
+  "routes": [
+    { "pattern": "getmaxsolutions.com", "custom_domain": true },
+    { "pattern": "www.getmaxsolutions.com", "custom_domain": true }
+  ],
   "assets": {
     "directory": "./out",
     "binding": "ASSETS",
